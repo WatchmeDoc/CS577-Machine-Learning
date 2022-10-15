@@ -18,10 +18,9 @@ Then, to install all required packages on your new environment use:
 $ poetry install
 ```
 
-Note: WSL uses a different conda than Windows. This is not a problem in general but when using an IDE, you need to somehow index PyCharm to that conda environment.
+Note: WSL uses a different conda than Windows. This is not a problem in general but when using an IDE, you need to somehow index the IDE to that conda environment.
 
-In PyCharm you can do that:
-In your project in Pycharm.
+Example, in your project in Pycharm:
 
 * Choose File, Setting, Project, Python Interpreter, Add
 * Choose WSL on the left. Linux = your Ubuntu
