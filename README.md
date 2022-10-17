@@ -9,7 +9,7 @@ The project uses Poetry for package management and Miniconda3 for virtual enviro
 Create and activate a new conda environment using:
 
 ```bashrc
-$ conda create -n ml_project python=3.8 && conda activate ml_project
+$ conda create -n ml_project python=3.8 -y && conda activate ml_project
 ```
 
 Then, to install all required packages on your new environment use:
