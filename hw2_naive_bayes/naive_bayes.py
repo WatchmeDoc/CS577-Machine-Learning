@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 from tqdm import tqdm
 
 CATEGORICAL = "categorical"
@@ -12,7 +13,9 @@ TRAIN_SET_PERCENTAGE = 0.75
 PRINT_MODEL = True
 REPEAT = 100
 SMOOTH_STR = 0
+PLOT_SMOOTH_STR_EXP = False
 
+# Data filepaths
 DISCRETE_X_FP = 'Assignment2_Data/DatasetA_X_categorical.csv'
 DISCRETE_Y_FP = 'Assignment2_Data/DatasetA_Y.csv'
 D_CATEGORICAL_FP = 'Assignment2_Data/DatasetA_D_categorical.csv'
@@ -158,8 +161,12 @@ def train_test_split(X, Y):
     msk = np.random.rand(len(X)) < TRAIN_SET_PERCENTAGE
     X_train = X[msk]
     X_test = X[~msk]
+
     Y_train = Y[msk]
     Y_test = Y[~msk]
+    if TRAIN_SET_PERCENTAGE == 1.0:
+        X_test = X_train
+        Y_test = Y_train
     return X_train, Y_train, X_test, Y_test
 
 
@@ -175,6 +182,9 @@ def main(X_dtype):
     else:
         raise ValueError(f"Unknown Data type provided. Please choose either \"{CATEGORICAL}\" or \"{CONTINUOUS}\"")
     accuracies = []
+    print(
+        f"Experiment running for {X_dtype} type variables, repeating {REPEAT} times with smoothing strength = {SMOOTH_STR}"
+    )
     for i in tqdm(range(REPEAT)):
         X_train, y_train, X_test, y_test = train_test_split(X=X, Y=Y)
         model = train_NBC(X=X_train, X_dtype=X_dtype, Y=y_train, L=SMOOTH_STR, D_categorical=D_categorical)
@@ -183,10 +193,30 @@ def main(X_dtype):
         predictions = predict_NBC(model=model, X=X_test, X_dtype=X_dtype)
         accuracy = compute_accuracy(predictions=predictions, actual_y=y_test.values.tolist())
         accuracies.append(accuracy)
-
-    print('Average Naive Bayes Accuracy = ', np.mean(accuracies))
+    mean_acc = np.mean(accuracies)
+    print('Average Naive Bayes Accuracy = ', mean_acc)
+    return mean_acc
 
 
 if __name__ == "__main__":
     main(X_dtype=CATEGORICAL)
     main(X_dtype=CONTINUOUS)
+    if PLOT_SMOOTH_STR_EXP:
+        experiments = [0, 1, 2, 5, 8, 10, 20, 50, 85, 95, 100, 300, 512, 666, 732, 856, 947, 1000]
+        results = []
+        tried_experiments = []
+        for SMOOTH_STR in experiments:
+            mean_acc = main(X_dtype=CATEGORICAL)
+            results.append(mean_acc)
+            tried_experiments.append(SMOOTH_STR)
+            if SMOOTH_STR == 0:
+                plt.figure()
+            elif SMOOTH_STR == 10 or SMOOTH_STR == 100 or SMOOTH_STR == 1000:
+                plt.scatter(tried_experiments, results)
+                plt.plot(tried_experiments, results)
+                plt.xlabel('L')
+                plt.ylabel('Mean Classification Accuracy')
+                plt.show()
+                plt.figure()
+                results = [mean_acc]
+                tried_experiments = [SMOOTH_STR]
