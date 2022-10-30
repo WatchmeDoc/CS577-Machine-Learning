@@ -3,6 +3,7 @@ import numpy as np
 from sklearn.preprocessing import OneHotEncoder
 
 TRAIN_SET_PERCENTAGE = 0.75
+CATEGORICAL_VALUES_THRESHOLD = 15
 
 
 def train_test_split(X: pd.DataFrame, Y: pd.DataFrame):
@@ -31,13 +32,15 @@ def compute_accuracy(predictions, actual_y):
     return score / total_predictions
 
 
-def count_categories_per_feature(X: pd.DataFrame):
-    counts = []
-    for index in X.columns:
-        counts.append(len(X[index].value_counts()))
-    return pd.DataFrame(counts)
-
 
 def one_hot_encode(X: pd.DataFrame):
     encoder = OneHotEncoder(handle_unknown='ignore')
     return pd.DataFrame(encoder.fit_transform(X).toarray())
+
+
+def find_categorical_vars(X: pd.DataFrame):
+    categorical_vars = {}
+    for col in X.columns:
+        if len(X[col].value_counts()) < CATEGORICAL_VALUES_THRESHOLD:
+            categorical_vars[col] = len(X[col].value_counts())
+    return categorical_vars

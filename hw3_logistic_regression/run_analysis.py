@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 from naive_bayes import train_NBC, predict_NBC, print_NBC_model
-from train_utils import train_test_split, compute_accuracy, count_categories_per_feature, one_hot_encode
+from train_utils import train_test_split, compute_accuracy, one_hot_encode, find_categorical_vars
 from trivial_classifier import trivial_train, trivial_predict
 from logistic_regression import train_logistic_regression, predict_logistic_regression
 
@@ -28,17 +28,28 @@ C = 1 / L
 if __name__ == "__main__":
     X = pd.read_csv(CATEGORICAL_DATA_X_FP, header=None)
     y = pd.read_csv(CATEGORICAL_DATA_Y_FP, header=None)
+    onehot_encode = True
     X_train, y_train, X_test, y_test = train_test_split(X=X, Y=y)
-    D_categorical = count_categories_per_feature(X=X)
+    categorical_vars = find_categorical_vars(X=X)
+
     # Trivial Train
     model = trivial_train(X=X_train, y=y_train)
     predictions = trivial_predict(X=X_test, model=model)
     accuracy = compute_accuracy(predictions=predictions, actual_y=y_test.values.tolist())
     print('Trivial Accuracy:', accuracy)
+
     # NBC Train
-    # model = train_NBC(X=X_train, Y=y_train, X_dtype=CATEGORICAL, L=L, D_categorical=D_categorical)
+    model = train_NBC(X=X_train, Y=y_train, L=L, categorical_variables=categorical_vars)
+    predictions = predict_NBC(model=model, X=X_test)
+    accuracy = compute_accuracy(predictions=predictions, actual_y=y_test.values.tolist())
+    print('Naive Bayes Accuracy:', accuracy)
+
     # Logistic Regression Train
-    X_encoded = one_hot_encode(X)
+    if onehot_encode:
+        X_encoded = one_hot_encode(X=X)
+        print('Dataset shape after encoding:', X_encoded.shape)
+    else:
+        X_encoded = X
     X_train, y_train, X_test, y_test = train_test_split(X=X_encoded, Y=y)
     model = train_logistic_regression(X=X_train, y=y_train, C=C, regularization=REGULARIZATION)
     predictions = predict_logistic_regression(X=X_test, model=model)
