@@ -81,7 +81,7 @@ def predict_NBC(model, X: pd.DataFrame):
                          input samples.
     """
     predictions = []
-    categorical_vars = model[CATEGORICAL_VARIABLES_KEY]
+    categorical_vars = model[CATEGORICAL_VARIABLES_KEY].keys()
     # For each sample
     for i in range(len(X)):
         sample = X.iloc[[i]]
@@ -124,4 +124,9 @@ def print_NBC_model(model):
                 print(f"\t\t\t P(X_{X_i} = {x_value} | Y = {label}) : {model[LIKELIHOODS_KEY][X_i][label][x_value]}")
             print('\t\t}')
         print('\t}')
+    print('}')
+    print('------------------------------------------------------')
+    print(CATEGORICAL_VARIABLES_KEY, ':', '{')
+    for X_i in model[CATEGORICAL_VARIABLES_KEY].keys():
+        print(f"\t X_{X_i} : {model[CATEGORICAL_VARIABLES_KEY][X_i]}")
     print('}')

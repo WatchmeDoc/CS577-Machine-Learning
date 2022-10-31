@@ -9,7 +9,8 @@ CATEGORICAL_VALUES_THRESHOLD = 15
 def train_test_split(X: pd.DataFrame, Y: pd.DataFrame):
     if len(X) != len(Y):
         raise ValueError("Dimensions between X and Y must match!")
-    msk = np.random.rand(len(X)) < TRAIN_SET_PERCENTAGE
+    arr_rand = np.random.rand(X.shape[0])
+    msk = arr_rand < np.percentile(arr_rand, TRAIN_SET_PERCENTAGE * 100)
     X_train = X[msk]
     X_test = X[~msk]
 
@@ -32,7 +33,6 @@ def compute_accuracy(predictions, actual_y):
     return score / total_predictions
 
 
-
 def one_hot_encode(X: pd.DataFrame):
     encoder = OneHotEncoder(handle_unknown='ignore')
     return pd.DataFrame(encoder.fit_transform(X).toarray())
@@ -44,3 +44,8 @@ def find_categorical_vars(X: pd.DataFrame):
         if len(X[col].value_counts()) < CATEGORICAL_VALUES_THRESHOLD:
             categorical_vars[col] = len(X[col].value_counts())
     return categorical_vars
+
+
+def k_percent_first_rows(X: pd.DataFrame, k):
+    index = int(np.floor(len(X) * k))
+    return X.head(index)
