@@ -1,6 +1,12 @@
 # CS577-Machine-Learning
 Exercises for the CS577 Machine Learning course of the Computer Science Department of University of Crete. 
 
+Each folder contains the files for the respective assignment, including both the assignment description and the final report.
+The datasets were also provided, and I included the files (.csv or zip with many .csv files) on them respectively. 
+
+The exercises usually involve creating our own implementation of fundamental ML algorithms, or carrying out simulated statistical
+tests (e.g. hypothesis testing). Read the respective assignment description for more information.
+
 
 ## Getting Started
 
@@ -25,3 +31,4 @@ Example, in your project in Pycharm:
 * Choose File, Setting, Project, Python Interpreter, Add
 * Choose WSL on the left. Linux = your Ubuntu
 * Python interpreter path = `home/<your_name>/miniconda3/envs/<your_env>/bin/python3` -- this is the environment you have created in Ubuntu with Conda.
+
