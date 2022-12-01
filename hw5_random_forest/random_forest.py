@@ -7,8 +7,10 @@ import matplotlib.pyplot as plt
 
 Y_INDEX = 'Y is house valuable'
 TRAIN_SET_PERCENTAGE = 0.7
-N_TREES = 100
+N_TREES = 1000
 MIN_SAMPLES_LEAF_VALUES = [1, 2, 5, 7, 10]
+MAX_FEATURES = "sqrt"
+PERMUTATIONS = True
 
 
 def train_test_split(X: pd.DataFrame, Y: pd.DataFrame):
@@ -49,8 +51,8 @@ def TrainRF(X: pd.DataFrame, Y: pd.Series, n_trees, min_samples_leaf):
     """
     forest = []
     for _ in range(n_trees):
-        X_bs, y_bs = resample(X, Y, replace=True)
-        model = DecisionTreeClassifier(min_samples_leaf=min_samples_leaf, max_features="sqrt")
+        X_bs, y_bs = resample(X, Y, replace=True) if PERMUTATIONS else X, Y
+        model = DecisionTreeClassifier(min_samples_leaf=min_samples_leaf, max_features=MAX_FEATURES)
         model = model.fit(X_bs, y_bs)
         forest.append(model)
     return forest
@@ -85,7 +87,7 @@ if __name__ == "__main__":
         y_pred = list(map(lambda item: 0 if item < N_TREES / 2 else 1, predictions))
         # Print accuracy of the Forest
         forest_accuracy = compute_accuracy(predictions=y_pred, actual_y=y_test)
-        print(forest_accuracy)
+        print("my implementation result:", forest_accuracy)
         # VS each tree individually
         accuracies = [compute_accuracy(predictions=tree_predictions, actual_y=y_test) for tree_predictions in pred_array]
 
@@ -93,14 +95,14 @@ if __name__ == "__main__":
         plt.hist(accuracies, color='c', label='Tree predictions')
         plt.axvline(np.mean(accuracies), color='k', linestyle='dashed', linewidth=1, label='Mean Tree Accuracy')
         plt.axvline(forest_accuracy, color='r', linestyle='dashed', linewidth=1, label='Forest Accuracy')
-        plt.xlabel(f'Classification Accuracy for min_samples_leaf = {min_samples_leaf}')
+        plt.xlabel(f'Classification Accuracy min_samples_leaf = {min_samples_leaf}')
         plt.ylabel('Occurrences')
-        plt.xlim((0.71, 0.92))
-        plt.ylim((0, 25))
         plt.legend()
+        # plt.xlim((0.67, 0.92))
+        # plt.ylim((0, 300))
         plt.show()
 
         # VS SKLearn
-        model = RandomForestClassifier(n_estimators=N_TREES, min_samples_leaf=min_samples_leaf, max_features='sqrt')
+        model = RandomForestClassifier(n_estimators=N_TREES, min_samples_leaf=min_samples_leaf, max_features=MAX_FEATURES)
         model.fit(X_train, y_train)
-        print(model.score(X_test, y_test))
+        print("sklearn result:", model.score(X_test, y_test))
