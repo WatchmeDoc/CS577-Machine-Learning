@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 Y_INDEX = 'Y is house valuable'
 TRAIN_SET_PERCENTAGE = 0.7
 N_TREES = 1000
-MIN_SAMPLES_LEAF_VALUES = [1, 2, 5, 7, 10]
+MIN_SAMPLES_LEAF_VALUES = [1, 10]
 MAX_FEATURES = "sqrt"
 PERMUTATIONS = True
 
@@ -51,7 +51,10 @@ def TrainRF(X: pd.DataFrame, Y: pd.Series, n_trees, min_samples_leaf):
     """
     forest = []
     for _ in range(n_trees):
-        X_bs, y_bs = resample(X, Y, replace=True) if PERMUTATIONS else X, Y
+        if PERMUTATIONS:
+            X_bs, y_bs = resample(X, Y, replace=True)
+        else:
+            X_bs, y_bs = X, Y
         model = DecisionTreeClassifier(min_samples_leaf=min_samples_leaf, max_features=MAX_FEATURES)
         model = model.fit(X_bs, y_bs)
         forest.append(model)
@@ -98,8 +101,8 @@ if __name__ == "__main__":
         plt.xlabel(f'Classification Accuracy min_samples_leaf = {min_samples_leaf}')
         plt.ylabel('Occurrences')
         plt.legend()
-        # plt.xlim((0.67, 0.92))
-        # plt.ylim((0, 300))
+        plt.xlim((0.68, 0.94))
+        plt.ylim((0, 350))
         plt.show()
 
         # VS SKLearn
