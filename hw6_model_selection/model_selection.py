@@ -14,6 +14,15 @@ CLASSIFIERS_TO_TRAIN = [{LogisticRegression: [{'C': 0}, {'C': 1}, {'C': 3}, {'C'
                                                   ]
                          }]
 
+
+def create_folds(data, k=5):
+    pass
+
+
+def CV(data, validation_indices, configurations):
+    pass
+
+
 if __name__ == "__main__":
     df = pd.read_csv('data/Dataset6.A_XY.csv', header=None)
     y = df[df.columns[-1]]
