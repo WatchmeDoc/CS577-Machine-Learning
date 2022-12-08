@@ -2,9 +2,10 @@ import pandas as pd
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import roc_auc_score
+from sklearn.metrics import roc_auc_score, roc_curve
 from sklearn.model_selection import StratifiedKFold
 import numpy as np
+import matplotlib.pyplot as plt
 
 # Add more configs in a similar manner; First argument is whether to use StandardScaler on X or not,
 # then the chosen classifier algorithm and finally a list of possible configurations for that classifier.
@@ -53,7 +54,7 @@ def CV(data, validation_indices, configurations):
     :param data: Input dataset to apply Cross Validation model selection to
     :param validation_indices: List of k-arrays, where each array contains the validation set indices
     :param configurations: See above the structure of configurations list
-    :return: best configuration including the mean AUC score as resulted from CV protocol.
+    :return: scaler if applicable and model instance, built from the best configuration
     """
     # Init model perf data structure
     model_perf = {}
@@ -100,11 +101,56 @@ def CV(data, validation_indices, configurations):
     # print(model_perf_list)
     # Select config with max mean AUC score
     best_config = max(model_perf_list, key=lambda x: x[3])
-    return best_config
+    print("Best configuration:")
+    print(best_config)
+    standardization, classifier, kwargs, _ = best_config
+    if standardization is True:
+        scaler = StandardScaler()
+        scaler.fit(data[x_cols])
+        data[x_cols] = scaler.transform(data[x_cols])
+    else:
+        scaler = None
+    clf = classifier(**kwargs)
+    clf.fit(X=data[x_cols], y=data[y_col])
+    return scaler, clf
 
 
 if __name__ == "__main__":
     df = pd.read_csv('data/Dataset6.A_XY.csv', header=None)
+    x_cols = df.columns[:-1]
+    y_col = df.columns[-1]
+    x_train = df[x_cols]
+    y_train = df[y_col]
+    # For each fold
     validation_set = create_folds(data=df)
-    model_chosen = CV(data=df, validation_indices=validation_set, configurations=CLASSIFIERS_TO_TRAIN)
-    print(model_chosen)
+    scaler, model_chosen = CV(data=df, validation_indices=validation_set, configurations=CLASSIFIERS_TO_TRAIN)
+
+    # Part B
+    test_df = pd.read_csv('data/Dataset6.B_XY.csv', header=None)
+    x_test = test_df[x_cols]
+    y_test = test_df[y_col]
+    if scaler is not None:
+        x_test = scaler.transform(x_test)
+
+    plt.figure()
+    # AUC score and ROC for best classifier:
+    y_pred_proba = model_chosen.predict_proba(x_test)[::, 1]
+    hold_out_auc = roc_auc_score(y_test, y_pred_proba)
+    print("Hold-Out Set AUC for best config:", hold_out_auc)
+    label = "AUC={:0.3f}".format(hold_out_auc)
+    fpr, tpr, _ = roc_curve(y_test, y_pred_proba, pos_label=2.0)
+    plt.plot(fpr, tpr, label=label)
+
+    # AUC and ROC for trivial classifier:
+    y_pred_proba_trivial = np.ones(len(y_pred_proba)) * y_train.value_counts(normalize=True).max()
+    trivial_auc = roc_auc_score(y_test, y_pred_proba_trivial)
+    print("Hold-Out Set AUC for trivial classifier:", trivial_auc)
+    label = "Trivial AUC={:0.3f}".format(trivial_auc)
+    fpr, tpr, _ = roc_curve(y_test, y_pred_proba_trivial, pos_label=2.0)
+    plt.plot(fpr, tpr, label=label)
+
+    plt.ylabel('True Positive Rate')
+    plt.xlabel('False Positive Rate')
+    plt.legend()
+    plt.show()
+
