@@ -20,12 +20,12 @@ CLASSIFIERS_TO_TRAIN = [(True, LogisticRegression, [{'C': 1}, {'C': 3}, {'C': 5}
                                                         ]
                          ),
                         (False, DecisionTreeClassifier, [{'min_samples_leaf': 1, 'max_features': None},
-                                                        {'min_samples_leaf': 4, 'max_features': None},
-                                                        {'min_samples_leaf': 10, 'max_features': None},
-                                                        {'min_samples_leaf': 1, 'max_features': "sqrt"},
-                                                        {'min_samples_leaf': 4, 'max_features': "sqrt"},
-                                                        {'min_samples_leaf': 10, 'max_features': "sqrt"}
-                                                        ]
+                                                         {'min_samples_leaf': 4, 'max_features': None},
+                                                         {'min_samples_leaf': 10, 'max_features': None},
+                                                         {'min_samples_leaf': 1, 'max_features': "sqrt"},
+                                                         {'min_samples_leaf': 4, 'max_features': "sqrt"},
+                                                         {'min_samples_leaf': 10, 'max_features': "sqrt"}
+                                                         ]
                          )
                         ]
 
@@ -115,6 +115,18 @@ def CV(data, validation_indices, configurations):
     return scaler, clf
 
 
+def bootstrap_predictions(model, test_set: pd.DataFrame, B=1000):
+    x_cols = test_set.columns[:-1]
+    y_col = test_set.columns[-1]
+    performances = []
+    for _ in range(B):
+        bootstrapped_set = test_set.sample(frac=1, replace=True)
+        x_test = bootstrapped_set[x_cols]
+        y_test = bootstrapped_set[y_col]
+        performances.append(roc_auc_score(y_test, model.predict_proba(x_test)[:, 1]))
+    return performances
+
+
 if __name__ == "__main__":
     df = pd.read_csv('data/Dataset6.A_XY.csv', header=None)
     x_cols = df.columns[:-1]
@@ -154,3 +166,14 @@ if __name__ == "__main__":
     plt.legend()
     plt.show()
 
+    # Confidence Intervals
+    bootstrapped_performances = bootstrap_predictions(model=model_chosen, test_set=test_df)
+    plt.figure()
+    plt.hist(bootstrapped_performances)
+    plt.axvline(hold_out_auc, color='r', linestyle='dashed', linewidth=1, label='Original Hold-Out Set score')
+    plt.axvline(np.quantile(bootstrapped_performances, 0.025), color='k', linestyle='dashed', linewidth=1)
+    plt.axvline(np.quantile(bootstrapped_performances, 0.975), color='k', linestyle='dashed', linewidth=1)
+    plt.legend()
+    plt.xlabel('AUC Score')
+    plt.ylabel('Count')
+    plt.show()
