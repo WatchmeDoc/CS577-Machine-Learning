@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "A repository that includes all exercises for CS577 Machine Learning Course"
 authors = ["George Manos <watchmedoctor@gmail.com>"]
 readme = "README.md"
-packages = [{include = "hw1_probabilities"}]
+repository = "https://github.com/WatchmeDoc/CS577-Machine-Learning"
 
 [tool.poetry.dependencies]
 python = "^3.8"
