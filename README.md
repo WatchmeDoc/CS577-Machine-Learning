@@ -10,7 +10,7 @@ tests (e.g. hypothesis testing). Read the respective assignment description for 
 
 ## Getting Started
 
-The project uses Poetry for package management and Miniconda3 for virtual environment. Make sure both are installed on either your Linux/MacOS or WSL.
+The project uses Poetry (version >=1.2.0) for package management and Miniconda3 for virtual environment. Make sure both are installed on either your Linux/MacOS or WSL.
 
 Create and activate a new conda environment using:
 
