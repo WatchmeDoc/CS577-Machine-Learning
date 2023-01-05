@@ -11,24 +11,35 @@ import time
 import matplotlib.pyplot as plt
 
 TRAIN_SET_PERCENTAGE = 0.8
-CLASSIFIERS_TO_TRAIN = [(True, SVC, [{'C': 1, 'kernel': 'linear', 'gamma': 0.1, 'probability': True},
-                                     {'C': 2, 'kernel': 'linear', 'gamma': 0.1, 'probability': True},
-                                     {'C': 5, 'kernel': 'linear', 'gamma': 0.1, 'probability': True},
-                                     {'C': 1, 'kernel': 'rbf', 'gamma': 0.1, 'probability': True},
-                                     {'C': 2, 'kernel': 'rbf', 'gamma': 0.1, 'probability': True},
-                                     {'C': 2, 'kernel': 'rbf', 'gamma': 1, 'probability': True},
-                                     ]),
-                        (True, DecisionTreeClassifier, [{'min_samples_leaf': 1, 'max_features': None},
-                                                        {'min_samples_leaf': 4, 'max_features': None},
-                                                        {'min_samples_leaf': 10, 'max_features': None},
-                                                        {'min_samples_leaf': 10, 'max_features': "sqrt"}
-                                                        ]
+FS_ARGS = 'FS kwargs'
+STANDARDIZATION_KEY = 'Standardization'
+# Should probably make this a json file at this point, it is getting too large
+# Note: SVC might not converge without standardized data. For speed purposes, I always standardize for this classifier.
+CLASSIFIERS_TO_TRAIN = [([{STANDARDIZATION_KEY: True, FS_ARGS: {'a': 0.05}},
+                          {STANDARDIZATION_KEY: True, FS_ARGS: {'a': 0.01}},
+                          {STANDARDIZATION_KEY: True, FS_ARGS: {'a': 0.005}}],
+                         SVC,
+                         [{'C': 1, 'kernel': 'linear', 'gamma': 0.1, 'probability': True},
+                          {'C': 2, 'kernel': 'linear', 'gamma': 0.1, 'probability': True},
+                          {'C': 5, 'kernel': 'linear', 'gamma': 0.1, 'probability': True},
+                          {'C': 1, 'kernel': 'rbf', 'gamma': 0.1, 'probability': True},
+                          {'C': 2, 'kernel': 'rbf', 'gamma': 0.1, 'probability': True},
+                          {'C': 2, 'kernel': 'rbf', 'gamma': 1, 'probability': True},
+                          ]
                          ),
-                        (False, DecisionTreeClassifier, [{'min_samples_leaf': 1, 'max_features': None},
-                                                         {'min_samples_leaf': 1, 'max_features': "sqrt"},
-                                                         {'min_samples_leaf': 4, 'max_features': "sqrt"},
-                                                         {'min_samples_leaf': 10, 'max_features': "sqrt"}
-                                                         ]
+                        ([{STANDARDIZATION_KEY: True, FS_ARGS: {'a': 0.05}},
+                          {STANDARDIZATION_KEY: True, FS_ARGS: {'a': 0.01}},
+                          {STANDARDIZATION_KEY: True, FS_ARGS: {'a': 0.005}},
+                          {STANDARDIZATION_KEY: False, FS_ARGS: {'a': 0.05}},
+                          {STANDARDIZATION_KEY: False, FS_ARGS: {'a': 0.01}},
+                          {STANDARDIZATION_KEY: False, FS_ARGS: {'a': 0.005}}
+                          ],
+                         DecisionTreeClassifier,
+                         [{'min_samples_leaf': 1, 'max_features': None},
+                          {'min_samples_leaf': 4, 'max_features': None},
+                          {'min_samples_leaf': 10, 'max_features': None},
+                          {'min_samples_leaf': 10, 'max_features': "sqrt"}
+                          ]
                          )
                         ]
 
@@ -84,6 +95,15 @@ def backward_selection(D, T_idx, S, a):
     return S
 
 
+def select_features(**kwargs):
+    """
+    Applies the forward-backward feature selection algorithm
+    :param kwargs:
+    :return S: Set S of selected features
+    """
+    pass
+
+
 def create_folds(data, k=5):
     """
     Splits the data into k stratified folds and returns a list of k arrays
@@ -100,7 +120,6 @@ def create_folds(data, k=5):
 
 def stratified_train_test_split(data: pd.DataFrame, T_idx):
     counts = data[T_idx].value_counts(normalize=True)
-    print(counts)
     minor_class = counts.index[counts.argmin()]
     data_minor = data[data[T_idx] == minor_class]
     data_major = data[data[T_idx] != minor_class]
@@ -119,25 +138,8 @@ def stratified_train_test_split(data: pd.DataFrame, T_idx):
     return train, test
 
 
-def CV(data, validation_indices, configurations):
-    """
-    This function selects the best configuration and computes its performance
-    via the cross validation procedure over the k validation_indices.
-    :param data: Input dataset to apply Cross Validation model selection to
-    :param validation_indices: List of k-arrays, where each array contains the validation set indices
-    :param configurations: See above the structure of configurations list
-    :return: scaler if applicable and model instance, built from the best configuration
-    """
-    # Init model perf data structure
-    model_perf = {}
-    for standardization, classifier, hyperparams in configurations:
-        if model_perf.get(standardization) is None:
-            model_perf[standardization] = {}
-        if model_perf[standardization].get(classifier) is None:
-            model_perf[standardization][classifier] = {}
-        for index, kwargs in enumerate(hyperparams):
-            if model_perf[standardization][classifier].get(index) is None:
-                model_perf[standardization][classifier][index] = []
+def get_avg_auc_for_config(data, validation_indices, preprocessing, clf, clf_kwargs, skip_fs):
+    model_scores = []
     x_cols = data.columns[:-1]
     y_col = data.columns[-1]
     # For each fold
@@ -149,42 +151,63 @@ def CV(data, validation_indices, configurations):
         y_train = train_set[y_col]
         x_test = test_set[x_cols]
         y_test = test_set[y_col]
-        # for each configuration
-        for standardization, classifier, hyperparams in configurations:
-            if standardization is not None:
-                scaler = StandardScaler()
-                # Fit scaler ONLY on the train data (golden rule)
-                scaler.fit(x_train)
-                x_train = pd.DataFrame(scaler.transform(x_train))
-                x_test = pd.DataFrame(scaler.transform(x_test))
-            for index, kwargs in enumerate(hyperparams):
-                # Train classifier and calculate AUC score
-                clf = classifier(**kwargs)
-                clf.fit(X=x_train, y=y_train)
-                model_perf[standardization][classifier][index].append(
-                    roc_auc_score(y_test, clf.predict_proba(x_test)[:, 1]))
-    # Calculate mean AUC score for each classifier
+        standardization = preprocessing[STANDARDIZATION_KEY]
+        if standardization is not None:
+            scaler = StandardScaler()
+            # Fit scaler ONLY on the train data (golden rule)
+            scaler.fit(x_train)
+            x_train = pd.DataFrame(scaler.transform(x_train))
+            x_test = pd.DataFrame(scaler.transform(x_test))
+        if skip_fs is not True:
+            fs_kwargs = preprocessing[FS_ARGS]
+            selected_features = select_features(fs_kwargs)
+        else:
+            selected_features = x_cols
+        classifier = clf(**clf_kwargs)
+        classifier.fit(X=x_train[selected_features], y=y_train)
+        model_scores.append(roc_auc_score(y_test, classifier.predict_proba(x_test[selected_features])[:, 1]))
+    return np.mean(model_scores)
+
+
+def select_best_config(data, validation_indices, configurations, skip_fs=False):
+    """
+    This function selects the best configuration and computes its performance
+    via the cross validation procedure over the k validation_indices.
+    :param data: Input dataset to apply Cross Validation model selection to
+    :param validation_indices: List of k-arrays, where each array contains the validation set indices
+    :param configurations: See above the structure of configurations list
+    :param skip_fs: Optional parameter, set true if you want to skip Feature Selection for all configs
+    :return: scaler if applicable and model instance, built from the best configuration
+    """
+    x_cols = data.columns[:-1]
+    y_col = data.columns[-1]
     model_perf_list = []
-    for standardization, classifier, hyperparams in configurations:
-        for index, kwargs in enumerate(hyperparams):
-            model_perf_list.append(
-                (standardization, classifier, kwargs, np.mean(model_perf[standardization][classifier][index]))
-            )
+    for preprocessing_configs, classifier, hyperparams in configurations:
+        for preprocessing in preprocessing_configs:
+            for index, kwargs in enumerate(hyperparams):
+                config_auc = get_avg_auc_for_config(data=data, validation_indices=validation_indices,
+                                                    preprocessing=preprocessing, clf=classifier,
+                                                    clf_kwargs=kwargs,
+                                                    skip_fs=skip_fs)
+                model_perf_list.append((config_auc, preprocessing, classifier, kwargs))
     # print(model_perf_list)
     # Select config with max mean AUC score
-    best_config = max(model_perf_list, key=lambda x: x[3])
+    best_config = max(model_perf_list, key=lambda x: x[0])
     print("Best configuration:")
     print(best_config)
-    standardization, classifier, kwargs, _ = best_config
-    if standardization is True:
+    _, preprocessing, classifier, kwargs = best_config
+    if preprocessing[STANDARDIZATION_KEY] is True:
         scaler = StandardScaler()
         scaler.fit(data[x_cols])
         data[x_cols] = scaler.transform(data[x_cols])
     else:
         scaler = None
+    selected_features = x_cols
+    if skip_fs is not True:
+        selected_features = selected_features(preprocessing[FS_ARGS])
     clf = classifier(**kwargs)
-    clf.fit(X=data[x_cols], y=data[y_col])
-    return scaler, clf
+    clf.fit(X=data[selected_features], y=data[y_col])
+    return scaler, selected_features, clf
 
 
 if __name__ == '__main__':
@@ -195,9 +218,12 @@ if __name__ == '__main__':
     # START WRITING YOUR CODE (YOU CAN CREATE AS MANY FUNCTIONS AS YOU WANT)
     train_set, hold_out_set = stratified_train_test_split(data=D, T_idx=T_idx)
     validation_set = create_folds(data=train_set)
-    scaler, model_chosen = CV(data=train_set.reset_index(drop=True), validation_indices=validation_set, configurations=CLASSIFIERS_TO_TRAIN)
+    scaler, selected_features, model_chosen = select_best_config(data=train_set.reset_index(drop=True),
+                                                                 validation_indices=validation_set,
+                                                                 configurations=CLASSIFIERS_TO_TRAIN,
+                                                                 skip_fs=True)
 
-    x_test = hold_out_set[V_indices]
+    x_test = hold_out_set[selected_features]
     y_test = hold_out_set[T_idx]
     if scaler is not None:
         x_test = scaler.transform(x_test)
