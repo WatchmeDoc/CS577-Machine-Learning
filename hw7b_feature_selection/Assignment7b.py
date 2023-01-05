@@ -20,7 +20,7 @@ def backward_selection(D, T_idx, S, a):
     pass
 
 
-if __name__=='__main__':
+if __name__ == '__main__':
     D = load_breast_cancer(as_frame=True).frame.values
     V_indices = np.arange(D.shape[1] - 1)
     T_idx = D.shape[1] - 1
