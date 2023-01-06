@@ -7,6 +7,7 @@ from sklearn.metrics import roc_auc_score, roc_curve
 from sklearn.model_selection import StratifiedKFold
 from sklearn.preprocessing import StandardScaler
 import numpy as np
+from tqdm import tqdm
 import time
 import matplotlib.pyplot as plt
 
@@ -61,16 +62,20 @@ def forward_selection(D, V_indices, T_idx, S, a):
     :param a: Significance Threshold
     :return S: Selected Variables
     """
-    R = V_indices.drop(S)
     flag = True
+    if S is None:
+        S = set()
+        R = V_indices
+    else:
+        R = V_indices.drop(S)
     while flag:
         flag = False
         V_star, p_value = min([(V_idx, stat_test(D=D.values, V_idx=V_idx, T_idx=T_idx, S=S)) for V_idx in R],
                               key=lambda x: x[1])
         R = R.drop(V_star)
         if p_value <= a:
-            flag = V_star not in S
-            S = S.add(V_star)
+            S.add(V_star)
+            flag = True
     return S
 
 
@@ -83,25 +88,26 @@ def backward_selection(D, T_idx, S, a):
     :param a: Significance Threshold
     :return S: Selected Variables
     """
-    flag = True
+    flag = len(S) > 0
     while flag:
         flag = False
         V_star, p_value = max(
-            [(V_idx, stat_test(D=D, V_idx=V_idx, T_idx=T_idx, S=S.drop(V_idx))) for V_idx in S],
+            [(V_idx, stat_test(D=D.values, V_idx=V_idx, T_idx=T_idx, S=S.difference({V_idx}))) for V_idx in S],
             key=lambda x: x[1])
         if p_value > a:
-            flag = V_star not in S
-            S = S.drop(V_star)
+            S.remove(V_star)
+            flag = True
     return S
 
 
-def select_features(**kwargs):
+def select_features(D, V_indices, T_idx, a):
     """
     Applies the forward-backward feature selection algorithm
     :param kwargs:
     :return S: Set S of selected features
     """
-    pass
+    S = forward_selection(D=D, V_indices=V_indices, T_idx=T_idx, S=None, a=a)
+    return list(backward_selection(D=D, T_idx=T_idx, S=S, a=a))
 
 
 def create_folds(data, k=5):
@@ -143,7 +149,11 @@ def get_avg_auc_for_config(data, validation_indices, preprocessing, clf, clf_kwa
     x_cols = data.columns[:-1]
     y_col = data.columns[-1]
     # For each fold
-    for test_indices in validation_indices:
+    print('Trying Config:')
+    print(preprocessing)
+    print(clf)
+    print(clf_kwargs)
+    for test_indices in tqdm(validation_indices):
         train_set = data.drop(test_indices)
         test_set = data.loc[test_indices]
         # X, Y split for train/test sets
@@ -160,13 +170,16 @@ def get_avg_auc_for_config(data, validation_indices, preprocessing, clf, clf_kwa
             x_test = pd.DataFrame(scaler.transform(x_test))
         if skip_fs is not True:
             fs_kwargs = preprocessing[FS_ARGS]
-            selected_features = select_features(fs_kwargs)
+            selected_features = select_features(D=data, V_indices=x_cols, T_idx=y_col, **fs_kwargs)
         else:
             selected_features = x_cols
         classifier = clf(**clf_kwargs)
         classifier.fit(X=x_train[selected_features], y=y_train)
         model_scores.append(roc_auc_score(y_test, classifier.predict_proba(x_test[selected_features])[:, 1]))
-    return np.mean(model_scores)
+    score = np.mean(model_scores)
+    print('Config score:', score)
+    print('--------------------------------------------------------')
+    return score
 
 
 def select_best_config(data, validation_indices, configurations, skip_fs=False):
@@ -190,7 +203,6 @@ def select_best_config(data, validation_indices, configurations, skip_fs=False):
                                                     clf_kwargs=kwargs,
                                                     skip_fs=skip_fs)
                 model_perf_list.append((config_auc, preprocessing, classifier, kwargs))
-    # print(model_perf_list)
     # Select config with max mean AUC score
     best_config = max(model_perf_list, key=lambda x: x[0])
     print("Best configuration:")
@@ -204,7 +216,8 @@ def select_best_config(data, validation_indices, configurations, skip_fs=False):
         scaler = None
     selected_features = x_cols
     if skip_fs is not True:
-        selected_features = selected_features(preprocessing[FS_ARGS])
+        selected_features = select_features(D=data, V_indices=x_cols, T_idx=y_col, **preprocessing[FS_ARGS])
+    print('Selected features:', selected_features)
     clf = classifier(**kwargs)
     clf.fit(X=data[selected_features], y=data[y_col])
     return scaler, selected_features, clf
@@ -221,12 +234,11 @@ if __name__ == '__main__':
     scaler, selected_features, model_chosen = select_best_config(data=train_set.reset_index(drop=True),
                                                                  validation_indices=validation_set,
                                                                  configurations=CLASSIFIERS_TO_TRAIN,
-                                                                 skip_fs=True)
-
+                                                                 skip_fs=False)
+    if scaler is not None:
+        hold_out_set[V_indices] = scaler.transform(hold_out_set[V_indices])
     x_test = hold_out_set[selected_features]
     y_test = hold_out_set[T_idx]
-    if scaler is not None:
-        x_test = scaler.transform(x_test)
 
     y_pred_proba = model_chosen.predict_proba(x_test)[::, 1]
     hold_out_auc = roc_auc_score(y_test, y_pred_proba)
