@@ -1,20 +1,21 @@
+import time
+
+import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
-from sklearn.svm import SVC
 from sklearn.metrics import roc_auc_score, roc_curve
 from sklearn.model_selection import StratifiedKFold
 from sklearn.preprocessing import StandardScaler
-import numpy as np
-import time
-import matplotlib.pyplot as plt
+from sklearn.svm import SVC
 
 C_VALUES = [0.01, 1, 10]
-KERNEL_VALUES = ['linear', 'rbf']
+KERNEL_VALUES = ["linear", "rbf"]
 GAMMA_VALUES = [0.1, 1, 10]
 TRAIN_SET_PERCENTAGE = 0.7
-C_KEY = 'C'
-KERNEL_KEY = 'kernel'
-GAMMA_KEY = 'gamma'
-Y_INDEX = 'Y is house valuable'
+C_KEY = "C"
+KERNEL_KEY = "kernel"
+GAMMA_KEY = "gamma"
+Y_INDEX = "Y is house valuable"
 
 
 def create_folds(data, k=5):
@@ -67,7 +68,12 @@ def CV(data, validation_indices):
         for kernel in KERNEL_VALUES:
             for gamma in GAMMA_VALUES:
                 config_performance = []
-                kwargs = {C_KEY: C, KERNEL_KEY: kernel, GAMMA_KEY: gamma, 'probability': True}
+                kwargs = {
+                    C_KEY: C,
+                    KERNEL_KEY: kernel,
+                    GAMMA_KEY: gamma,
+                    "probability": True,
+                }
                 print("Trying config:", kwargs)
                 for x_train, y_train, x_test, y_test in sets:
                     # Fit classifier with current config
@@ -77,7 +83,9 @@ def CV(data, validation_indices):
                     clf = SVC(**kwargs)
                     clf.fit(x_train, y_train)
                     # Estimate AUC on test fold
-                    config_performance.append(roc_auc_score(y_test, clf.predict_proba(x_test)[:, 1]))
+                    config_performance.append(
+                        roc_auc_score(y_test, clf.predict_proba(x_test)[:, 1])
+                    )
                 # Store mean AUC score for current config, and current config
                 avg_auc = np.mean(config_performance)
                 print("Average AUC for config:", avg_auc)
@@ -96,20 +104,24 @@ def CV(data, validation_indices):
 
 
 if __name__ == "__main__":
-    df = pd.read_csv('dataset/Dataset7_XY.csv')
+    df = pd.read_csv("dataset/Dataset7_XY.csv")
     X_INDEX = df.columns.drop(Y_INDEX)
     train_set, hold_out_set = train_test_split(data=df)
 
     validation_set = create_folds(data=train_set)
     start_time = time.time()
-    scaler, model_chosen = CV(data=train_set.reset_index(drop=True), validation_indices=validation_set)
+    scaler, model_chosen = CV(
+        data=train_set.reset_index(drop=True), validation_indices=validation_set
+    )
     end_time = time.time()
-    print('--- %s seconds ---' % (end_time - start_time))
+    print("--- %s seconds ---" % (end_time - start_time))
 
     # AUC score and ROC for best classifier:
-    y_pred_proba = model_chosen.predict_proba(scaler.transform(hold_out_set[X_INDEX]))[::, 1]
+    y_pred_proba = model_chosen.predict_proba(scaler.transform(hold_out_set[X_INDEX]))[
+        ::, 1
+    ]
     hold_out_auc = roc_auc_score(hold_out_set[Y_INDEX], y_pred_proba)
-    print('Hold-Out set AUC:')
+    print("Hold-Out set AUC:")
     print(hold_out_auc)
 
     # Plot ROC Curve
@@ -117,8 +129,8 @@ if __name__ == "__main__":
     label = "AUC={:0.3f}".format(hold_out_auc)
     fpr, tpr, _ = roc_curve(hold_out_set[Y_INDEX], y_pred_proba)
     plt.plot(fpr, tpr, label=label)
-    plt.ylabel('True Positive Rate')
-    plt.xlabel('False Positive Rate')
-    plt.title('ROC Curve for best config SVM')
+    plt.ylabel("True Positive Rate")
+    plt.xlabel("False Positive Rate")
+    plt.title("ROC Curve for best config SVM")
     plt.legend()
     plt.show()

@@ -1,33 +1,42 @@
+import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import roc_auc_score, roc_curve
 from sklearn.model_selection import StratifiedKFold
-import numpy as np
-import matplotlib.pyplot as plt
+from sklearn.preprocessing import StandardScaler
+from sklearn.tree import DecisionTreeClassifier
 
 # Add more configs in a similar manner; First argument is whether to use StandardScaler on X or not,
 # then the chosen classifier algorithm and finally a list of possible configurations for that classifier.
-CLASSIFIERS_TO_TRAIN = [(True, LogisticRegression, [{'C': 1}, {'C': 3}, {'C': 5}]),
-                        (False, LogisticRegression, [{'C': 1}, {'C': 3}, {'C': 5}]),
-                        (True, DecisionTreeClassifier, [{'min_samples_leaf': 1, 'max_features': None},
-                                                        {'min_samples_leaf': 4, 'max_features': None},
-                                                        {'min_samples_leaf': 10, 'max_features': None},
-                                                        {'min_samples_leaf': 1, 'max_features': "sqrt"},
-                                                        {'min_samples_leaf': 4, 'max_features': "sqrt"},
-                                                        {'min_samples_leaf': 10, 'max_features': "sqrt"}
-                                                        ]
-                         ),
-                        (False, DecisionTreeClassifier, [{'min_samples_leaf': 1, 'max_features': None},
-                                                         {'min_samples_leaf': 4, 'max_features': None},
-                                                         {'min_samples_leaf': 10, 'max_features': None},
-                                                         {'min_samples_leaf': 1, 'max_features': "sqrt"},
-                                                         {'min_samples_leaf': 4, 'max_features': "sqrt"},
-                                                         {'min_samples_leaf': 10, 'max_features': "sqrt"}
-                                                         ]
-                         )
-                        ]
+CLASSIFIERS_TO_TRAIN = [
+    (True, LogisticRegression, [{"C": 1}, {"C": 3}, {"C": 5}]),
+    (False, LogisticRegression, [{"C": 1}, {"C": 3}, {"C": 5}]),
+    (
+        True,
+        DecisionTreeClassifier,
+        [
+            {"min_samples_leaf": 1, "max_features": None},
+            {"min_samples_leaf": 4, "max_features": None},
+            {"min_samples_leaf": 10, "max_features": None},
+            {"min_samples_leaf": 1, "max_features": "sqrt"},
+            {"min_samples_leaf": 4, "max_features": "sqrt"},
+            {"min_samples_leaf": 10, "max_features": "sqrt"},
+        ],
+    ),
+    (
+        False,
+        DecisionTreeClassifier,
+        [
+            {"min_samples_leaf": 1, "max_features": None},
+            {"min_samples_leaf": 4, "max_features": None},
+            {"min_samples_leaf": 10, "max_features": None},
+            {"min_samples_leaf": 1, "max_features": "sqrt"},
+            {"min_samples_leaf": 4, "max_features": "sqrt"},
+            {"min_samples_leaf": 10, "max_features": "sqrt"},
+        ],
+    ),
+]
 
 
 def create_folds(data, k=5):
@@ -90,13 +99,19 @@ def CV(data, validation_indices, configurations):
                 clf = classifier(**kwargs)
                 clf.fit(X=x_train, y=y_train)
                 model_perf[standardization][classifier][index].append(
-                    roc_auc_score(y_test, clf.predict_proba(x_test)[:, 1]))
+                    roc_auc_score(y_test, clf.predict_proba(x_test)[:, 1])
+                )
     # Calculate mean AUC score for each classifier
     model_perf_list = []
     for standardization, classifier, hyperparams in configurations:
         for index, kwargs in enumerate(hyperparams):
             model_perf_list.append(
-                (standardization, classifier, kwargs, np.mean(model_perf[standardization][classifier][index]))
+                (
+                    standardization,
+                    classifier,
+                    kwargs,
+                    np.mean(model_perf[standardization][classifier][index]),
+                )
             )
     # print(model_perf_list)
     # Select config with max mean AUC score
@@ -128,17 +143,19 @@ def bootstrap_predictions(model, test_set: pd.DataFrame, B=1000):
 
 
 if __name__ == "__main__":
-    df = pd.read_csv('data/Dataset6.A_XY.csv', header=None)
+    df = pd.read_csv("data/Dataset6.A_XY.csv", header=None)
     x_cols = df.columns[:-1]
     y_col = df.columns[-1]
     x_train = df[x_cols]
     y_train = df[y_col]
     # For each fold
     validation_set = create_folds(data=df)
-    scaler, model_chosen = CV(data=df, validation_indices=validation_set, configurations=CLASSIFIERS_TO_TRAIN)
+    scaler, model_chosen = CV(
+        data=df, validation_indices=validation_set, configurations=CLASSIFIERS_TO_TRAIN
+    )
 
     # Part B
-    test_df = pd.read_csv('data/Dataset6.B_XY.csv', header=None)
+    test_df = pd.read_csv("data/Dataset6.B_XY.csv", header=None)
     x_test = test_df[x_cols]
     y_test = test_df[y_col]
     if scaler is not None:
@@ -154,26 +171,46 @@ if __name__ == "__main__":
     plt.plot(fpr, tpr, label=label)
 
     # AUC and ROC for trivial classifier:
-    y_pred_proba_trivial = np.ones(len(y_pred_proba)) * y_train.value_counts(normalize=True).max()
+    y_pred_proba_trivial = (
+        np.ones(len(y_pred_proba)) * y_train.value_counts(normalize=True).max()
+    )
     trivial_auc = roc_auc_score(y_test, y_pred_proba_trivial)
     print("Hold-Out Set AUC for trivial classifier:", trivial_auc)
     label = "Trivial AUC={:0.3f}".format(trivial_auc)
     fpr, tpr, _ = roc_curve(y_test, y_pred_proba_trivial, pos_label=2.0)
     plt.plot(fpr, tpr, label=label)
 
-    plt.ylabel('True Positive Rate')
-    plt.xlabel('False Positive Rate')
+    plt.ylabel("True Positive Rate")
+    plt.xlabel("False Positive Rate")
     plt.legend()
     plt.show()
 
     # Confidence Intervals
-    bootstrapped_performances = bootstrap_predictions(model=model_chosen, test_set=test_df)
+    bootstrapped_performances = bootstrap_predictions(
+        model=model_chosen, test_set=test_df
+    )
     plt.figure()
     plt.hist(bootstrapped_performances)
-    plt.axvline(hold_out_auc, color='r', linestyle='dashed', linewidth=1, label='Original Hold-Out Set score')
-    plt.axvline(np.quantile(bootstrapped_performances, 0.025), color='k', linestyle='dashed', linewidth=1)
-    plt.axvline(np.quantile(bootstrapped_performances, 0.975), color='k', linestyle='dashed', linewidth=1)
+    plt.axvline(
+        hold_out_auc,
+        color="r",
+        linestyle="dashed",
+        linewidth=1,
+        label="Original Hold-Out Set score",
+    )
+    plt.axvline(
+        np.quantile(bootstrapped_performances, 0.025),
+        color="k",
+        linestyle="dashed",
+        linewidth=1,
+    )
+    plt.axvline(
+        np.quantile(bootstrapped_performances, 0.975),
+        color="k",
+        linestyle="dashed",
+        linewidth=1,
+    )
     plt.legend()
-    plt.xlabel('AUC Score')
-    plt.ylabel('Count')
+    plt.xlabel("AUC Score")
+    plt.ylabel("Count")
     plt.show()

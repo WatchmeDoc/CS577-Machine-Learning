@@ -1,11 +1,11 @@
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.utils import resample
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.utils import resample
 
-Y_INDEX = 'Y is house valuable'
+Y_INDEX = "Y is house valuable"
 TRAIN_SET_PERCENTAGE = 0.7
 N_TREES = 1000
 MIN_SAMPLES_LEAF_VALUES = [1, 10]
@@ -33,7 +33,8 @@ def compute_accuracy(predictions, actual_y):
     total_predictions = len(predictions)
     if total_predictions != len(actual_y):
         raise ValueError(
-            f"Dimensions between predictions and actual_y must match! Predictions is {total_predictions} and actual_y is {len(actual_y)}")
+            f"Dimensions between predictions and actual_y must match! Predictions is {total_predictions} and actual_y is {len(actual_y)}"
+        )
     score = 0
     for i in range(total_predictions):
         score += 1 if predictions[i] == actual_y[i] else 0
@@ -55,7 +56,9 @@ def TrainRF(X: pd.DataFrame, Y: pd.Series, n_trees, min_samples_leaf):
             X_bs, y_bs = resample(X, Y, replace=True)
         else:
             X_bs, y_bs = X, Y
-        model = DecisionTreeClassifier(min_samples_leaf=min_samples_leaf, max_features=MAX_FEATURES)
+        model = DecisionTreeClassifier(
+            min_samples_leaf=min_samples_leaf, max_features=MAX_FEATURES
+        )
         model = model.fit(X_bs, y_bs)
         forest.append(model)
     return forest
@@ -76,14 +79,16 @@ def PredictRF(model, X):
 
 
 if __name__ == "__main__":
-    df = pd.read_csv('data/Dataset5_XY.csv')
+    df = pd.read_csv("data/Dataset5_XY.csv")
     X = df[df.columns.drop(Y_INDEX)]
     y = df[Y_INDEX]
     X_train, y_train, X_test, y_test = train_test_split(X=X, Y=y)
     y_test = y_test.values.tolist()
     for min_samples_leaf in MIN_SAMPLES_LEAF_VALUES:
         # Personal implementation
-        model = TrainRF(X=X_train, Y=y_train, n_trees=N_TREES, min_samples_leaf=min_samples_leaf)
+        model = TrainRF(
+            X=X_train, Y=y_train, n_trees=N_TREES, min_samples_leaf=min_samples_leaf
+        )
         pred_array = PredictRF(model=model, X=X_test)
         # Convert predictions array to predictions vector with most voted class
         predictions = pred_array.sum(axis=0)
@@ -92,20 +97,39 @@ if __name__ == "__main__":
         forest_accuracy = compute_accuracy(predictions=y_pred, actual_y=y_test)
         print("my implementation result:", forest_accuracy)
         # VS each tree individually
-        accuracies = [compute_accuracy(predictions=tree_predictions, actual_y=y_test) for tree_predictions in pred_array]
+        accuracies = [
+            compute_accuracy(predictions=tree_predictions, actual_y=y_test)
+            for tree_predictions in pred_array
+        ]
 
         plt.figure()
-        plt.hist(accuracies, color='c', label='Tree predictions')
-        plt.axvline(np.mean(accuracies), color='k', linestyle='dashed', linewidth=1, label='Mean Tree Accuracy')
-        plt.axvline(forest_accuracy, color='r', linestyle='dashed', linewidth=1, label='Forest Accuracy')
-        plt.xlabel(f'Classification Accuracy min_samples_leaf = {min_samples_leaf}')
-        plt.ylabel('Occurrences')
+        plt.hist(accuracies, color="c", label="Tree predictions")
+        plt.axvline(
+            np.mean(accuracies),
+            color="k",
+            linestyle="dashed",
+            linewidth=1,
+            label="Mean Tree Accuracy",
+        )
+        plt.axvline(
+            forest_accuracy,
+            color="r",
+            linestyle="dashed",
+            linewidth=1,
+            label="Forest Accuracy",
+        )
+        plt.xlabel(f"Classification Accuracy min_samples_leaf = {min_samples_leaf}")
+        plt.ylabel("Occurrences")
         plt.legend()
         plt.xlim((0.68, 0.94))
         plt.ylim((0, 350))
         plt.show()
 
         # VS SKLearn
-        model = RandomForestClassifier(n_estimators=N_TREES, min_samples_leaf=min_samples_leaf, max_features=MAX_FEATURES)
+        model = RandomForestClassifier(
+            n_estimators=N_TREES,
+            min_samples_leaf=min_samples_leaf,
+            max_features=MAX_FEATURES,
+        )
         model.fit(X_train, y_train)
         print("sklearn result:", model.score(X_test, y_test))

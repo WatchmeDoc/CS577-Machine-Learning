@@ -1,5 +1,5 @@
-import pandas as pd
 import numpy as np
+import pandas as pd
 from sklearn.preprocessing import OneHotEncoder
 
 TRAIN_SET_PERCENTAGE = 0.75
@@ -26,7 +26,8 @@ def compute_accuracy(predictions, actual_y):
     total_predictions = len(predictions)
     if total_predictions != len(actual_y):
         raise ValueError(
-            f"Dimensions between predictions and actual_y must match! Predictions is {total_predictions} and actual_y is {len(actual_y)}")
+            f"Dimensions between predictions and actual_y must match! Predictions is {total_predictions} and actual_y is {len(actual_y)}"
+        )
     score = 0
     for i in range(total_predictions):
         score += 1 if predictions[i] == actual_y[i] else 0
@@ -34,7 +35,7 @@ def compute_accuracy(predictions, actual_y):
 
 
 def one_hot_encode(X: pd.DataFrame):
-    encoder = OneHotEncoder(handle_unknown='ignore')
+    encoder = OneHotEncoder(handle_unknown="ignore")
     return pd.DataFrame(encoder.fit_transform(X).toarray())
 
 

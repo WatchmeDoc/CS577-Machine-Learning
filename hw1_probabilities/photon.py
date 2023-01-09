@@ -1,6 +1,5 @@
-import numpy as np
 import matplotlib.pyplot as plt
-
+import numpy as np
 
 pp = 1e-7
 fpr = 0.1
@@ -8,7 +7,10 @@ tpr = 0.85
 
 # Part a.
 probability = (tpr * pp) / (tpr * pp + fpr * (1 - pp))
-print("The probability that a photon package was actually received given the detector reported a detection is ", probability)
+print(
+    "The probability that a photon package was actually received given the detector reported a detection is ",
+    probability,
+)
 
 # Part b.
 
@@ -21,7 +23,10 @@ energy_sums = []
 
 for _ in range(N):
     # randint from numpy returns random integers from the “discrete uniform” distribution
-    rand_energies = [energies[index] for index in np.random.randint(low=0, high=num_energies, size=num_photons)]
+    rand_energies = [
+        energies[index]
+        for index in np.random.randint(low=0, high=num_energies, size=num_photons)
+    ]
     energy_sums.append(sum(rand_energies))
 
 plt.figure()

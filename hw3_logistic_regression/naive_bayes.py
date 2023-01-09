@@ -1,5 +1,5 @@
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 CATEGORICAL = "categorical"
 CONTINUOUS = "continuous"
@@ -35,7 +35,9 @@ def train_NBC(X: pd.DataFrame, Y: pd.DataFrame, L, categorical_variables):
     for label in categories:
         # 1. Calculate class prior probabilities
         label_count = len(Y[Y[0] == label])
-        class_probability[label] = (label_count + L) / (sample_count + L * len(categories))
+        class_probability[label] = (label_count + L) / (
+            sample_count + L * len(categories)
+        )
         class_x = X[Y[0] == label]
 
         # 2. Calculate frequency for each Variable
@@ -50,7 +52,9 @@ def train_NBC(X: pd.DataFrame, Y: pd.DataFrame, L, categorical_variables):
 
             for value in range(D_m):
                 sample_freq = len(class_x[class_x[i] == value])
-                likelihoods[i][label][value] = (sample_freq + L) / (len(class_x[i]) + L * D_m)
+                likelihoods[i][label][value] = (sample_freq + L) / (
+                    len(class_x[i]) + L * D_m
+                )
         cols = [col for col in X.columns if col not in categorical_variables.keys()]
         if cols is not None:
             for i in X[cols]:
@@ -64,9 +68,11 @@ def train_NBC(X: pd.DataFrame, Y: pd.DataFrame, L, categorical_variables):
                 likelihoods[i][label][MEAN_KEY] = mean
                 likelihoods[i][label][STD_KEY] = std
 
-    model = {CLASS_PROBABILITIES_KEY: class_probability,
-             LIKELIHOODS_KEY: likelihoods,
-             CATEGORICAL_VARIABLES_KEY: categorical_variables}
+    model = {
+        CLASS_PROBABILITIES_KEY: class_probability,
+        LIKELIHOODS_KEY: likelihoods,
+        CATEGORICAL_VARIABLES_KEY: categorical_variables,
+    }
 
     return model
 
@@ -106,27 +112,33 @@ def predict_NBC(model, X: pd.DataFrame):
 
 
 def _gauss_pdf(x, mu, sigma):
-    return 1 / (np.sqrt(2 * np.pi * sigma ** 2)) * np.exp((-(x - mu) ** 2) / (2 * (sigma ** 2)))
+    return (
+        1
+        / (np.sqrt(2 * np.pi * sigma**2))
+        * np.exp((-((x - mu) ** 2)) / (2 * (sigma**2)))
+    )
 
 
 def print_NBC_model(model):
-    print(CLASS_PROBABILITIES_KEY, ':', '{')
+    print(CLASS_PROBABILITIES_KEY, ":", "{")
     for label in model[CLASS_PROBABILITIES_KEY].keys():
-        print('\t', label, ':', model[CLASS_PROBABILITIES_KEY][label])
-    print('}')
-    print('------------------------------------------------------')
-    print(LIKELIHOODS_KEY, ':', '{')
+        print("\t", label, ":", model[CLASS_PROBABILITIES_KEY][label])
+    print("}")
+    print("------------------------------------------------------")
+    print(LIKELIHOODS_KEY, ":", "{")
     for X_i in model[LIKELIHOODS_KEY].keys():
         print(f"\t X_{X_i} : {'{'}")
         for label in model[LIKELIHOODS_KEY][X_i].keys():
             print(f"\t\t Y = {label} : {'{'}")
             for x_value in model[LIKELIHOODS_KEY][X_i][label]:
-                print(f"\t\t\t P(X_{X_i} = {x_value} | Y = {label}) : {model[LIKELIHOODS_KEY][X_i][label][x_value]}")
-            print('\t\t}')
-        print('\t}')
-    print('}')
-    print('------------------------------------------------------')
-    print(CATEGORICAL_VARIABLES_KEY, ':', '{')
+                print(
+                    f"\t\t\t P(X_{X_i} = {x_value} | Y = {label}) : {model[LIKELIHOODS_KEY][X_i][label][x_value]}"
+                )
+            print("\t\t}")
+        print("\t}")
+    print("}")
+    print("------------------------------------------------------")
+    print(CATEGORICAL_VARIABLES_KEY, ":", "{")
     for X_i in model[CATEGORICAL_VARIABLES_KEY].keys():
         print(f"\t X_{X_i} : {model[CATEGORICAL_VARIABLES_KEY][X_i]}")
-    print('}')
+    print("}")
